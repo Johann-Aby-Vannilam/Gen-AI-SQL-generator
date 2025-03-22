@@ -24,8 +24,8 @@ env/
 *.log
 *.sqlite3
 
-# Build and distribution directories
+# Build and distribution directories    
 build/
 dist/
 *.egg-info/
-local_settings.py
+django_project/local_settings.py
