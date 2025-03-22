@@ -97,17 +97,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'django_project.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/2.1/ref/settings/#databases
-
-MONGODB_SETTINGS = {
-    "HOST": "localhost:27017",  # Replace with your MongoDB URI
-    "DATABASE_NAME": "Project",  # Replace with your actual database name
-}
-
-#MONGO_URI = "mongodb://localhost:27017/"
-#MONGO_DB_NAME = "Project"
-
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
 

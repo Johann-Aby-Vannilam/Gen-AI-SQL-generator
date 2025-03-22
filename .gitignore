@@ -23,6 +23,7 @@ env/
 # Logs and databases
 *.log
 *.sqlite3
+logs/
 
 # Build and distribution directories    
 build/
