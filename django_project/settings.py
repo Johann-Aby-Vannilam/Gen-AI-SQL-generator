@@ -100,16 +100,6 @@ WSGI_APPLICATION = 'django_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',  # Replace with your database name
-        'USER': '',   # Replace with your PostgreSQL username
-        'PASSWORD': '',  
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
 MONGODB_SETTINGS = {
     "HOST": "localhost:27017",  # Replace with your MongoDB URI
     "DATABASE_NAME": "Project",  # Replace with your actual database name
@@ -199,3 +189,8 @@ SESSION_COOKIE_AGE = 1209600
 CSRF_COOKIE_SECURE = False  # Set to True in production for secure cookies
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+
+from .local_settings import *
