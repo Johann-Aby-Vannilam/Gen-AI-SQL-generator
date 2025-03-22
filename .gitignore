@@ -29,12 +29,6 @@ logs/
 build/
 dist/
 *.egg-info/
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 django_project/local_settings.py
-=======
-.django_project/local_settings.py
->>>>>>> 42ca886 (resolved merge conflict)
-=======
-django_project/local_settings.py
->>>>>>> 33d3ff2 (changed database config to local settings file)
+
