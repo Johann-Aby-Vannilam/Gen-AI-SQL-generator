@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
-from pymongo import MongoClient
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -96,21 +97,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'django_project.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/2.1/ref/settings/#databases
-
-MONGODB_SETTINGS = {
-    "HOST": "localhost:27017",  # Replace with your MongoDB URI
-    "DATABASE_NAME": "Project",  # Replace with your actual database name
-}
-
-#MONGO_URI = "mongodb://localhost:27017/"
-#MONGO_DB_NAME = "Project"
-
-# Password validation
-# https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -169,10 +155,6 @@ MEDIA_URL = '/media/'
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
-'''LOGIN_REDIRECT_URL = 'blog-home'
-LOGIN_URL = 'login'
-LOGOUT_REDIRECT_URL = 'logout'''
-
 CHATBOT_REDIRECT_URL = 'chatbot_response'
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -184,13 +166,10 @@ CORS_ALLOWED_ORIGINS = [
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600
 
-
-
 CSRF_COOKIE_SECURE = False  # Set to True in production for secure cookies
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 from .local_settings import *
