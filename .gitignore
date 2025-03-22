@@ -23,9 +23,12 @@ env/
 # Logs and databases
 *.log
 *.sqlite3
+logs/
 
 # Build and distribution directories    
 build/
 dist/
 *.egg-info/
+
 django_project/local_settings.py
+
