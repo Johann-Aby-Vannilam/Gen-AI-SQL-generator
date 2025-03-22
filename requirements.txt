@@ -80,7 +80,6 @@ pytz==2025.1
 pywin32==308
 PyYAML==6.0.2
 pyzmq==26.2.0
-requests 
 ruamel.yaml
 ruamel.yaml.clib 
 scipy==1.15.2
@@ -94,16 +93,13 @@ sympy==1.13.1
 torch==2.6.0
 torchvision==0.21.0
 tornado==6.4.2
-tqdm 
 traitlets==5.14.3
 truststore
 typing_extensions==4.12.2
 tzdata==2025.1
 ultralytics==8.3.81
-ultralytics-thop==2.0.14
-urllib3 
+ultralytics-thop==2.0.14 
 wcwidth==0.2.13
 wheel==0.44.0
 win-inet-pton 
 yarl==1.18.3
-zstandard 
