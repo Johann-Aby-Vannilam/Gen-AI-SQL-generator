@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db import connections
+from django.db import connections,connection
 from Query_executor.postges_exe import QueryExecutor
 from Query_generator import PostgresQueryGenerator, MongoQueryGenerator
 from Connection_db.mongo_con import MongoDBConnection
 import logging
-import re
+from uuid import uuid4
 from Query_executor import MongoQueryExecutor
 from django.conf import settings
 from pymongo import MongoClient
@@ -20,6 +20,7 @@ class GenerateQueryView(APIView):
     def post(self, request):
         try:
             logger.debug(f"Parsed request data: {request.data}")
+            user_name = request.data.get('user_name')
             user_input = request.data.get('user_input')
             db_selected = request.data.get('db_selected', 'sql').lower()
 
@@ -36,6 +37,7 @@ class GenerateQueryView(APIView):
                 generator = PostgresQueryGenerator(connection)
                 sql_query = generator.generate_query(user_input)
                 logger.debug(f"Generated SQL query: {sql_query}")
+                self.save_chat_history(user_name, user_input, sql_query, db_selected)
                 return Response(data={"generated_query": sql_query}, status=status.HTTP_200_OK)
             
             else:
@@ -47,6 +49,7 @@ class GenerateQueryView(APIView):
                 logger.debug(f"User input received: {user_input}")  # ✅ Debugging log
                 no_sql_query = generator.generate_query(user_input)
                 logger.debug(f"Generated NoSQL query: {no_sql_query}")
+                self.save_chat_history(user_name, user_input, no_sql_query, db_selected)
                 return Response(data={"generated_query": no_sql_query}, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -55,6 +58,19 @@ class GenerateQueryView(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    def save_chat_history(self, user_id, user_query, generated_query, database_type):
+        chat_id = str(uuid4())
+        query = """
+            INSERT INTO chat_history (chat_id, user_id, user_query, generated_query, database_type)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        if isinstance(generated_query, dict):
+            query2 = generated_query.get('query')
+        else:
+            query2 = generated_query
+        with connections['default'].cursor() as cursor:
+            cursor.execute(query, (chat_id, user_id, user_query, query2, database_type))
+            connection.commit()
 
 class ExecuteQueryView(APIView):
     permission_classes = [AllowAny]
@@ -129,71 +145,59 @@ class ExecuteQueryView(APIView):
                         data={"execution_result": execution_result["data"]},  # Return query result
                         status=status.HTTP_200_OK
                     )
-                '''
-                logger.debug("Executing NoSQL (MongoDB) query.")
-
-                mongo_connection = MongoDBConnection()
-                mongo_connection.connect()
-                database_name = settings.MONGODB_SETTINGS["DATABASE_NAME"]
-
-                # Remove reliance on collection name
-                executor = MongoQueryExecutor(mongo_connection.db)
-                execution_result = executor.execute_query(generated_query)  
-                
-                logger.debug(f"Query executed successfully: {execution_result}")
-
-                return Response(
-                    data={"execution_result": execution_result["data"]},  # ✅ Return query result
-                    status=status.HTTP_200_OK
-                )'''
-                '''logger.debug("Executing NoSQL query.")
-                mongo_connection = MongoDBConnection()
-                mongo_connection.connect()
-                database_name = settings.MONGODB_SETTINGS["DATABASE_NAME"]
-                execution_result = mongo_connection.execute_query(database_name, query)  # Replace with actual collection name
-                logger.debug(f"Query executed successfully: {execution_result}")
-
-                return Response(
-                    data={"execution_result": list(execution_result)},  # Convert cursor to list
-                    status=status.HTTP_200_OK
-                )
-                
-                
-                elif db_selected == "nosql":
-                    logger.debug("Executing NoSQL (MongoDB) query.")
-
-                    # Connect to MongoDB
-                    mongo_connection = MongoDBConnection()
-                    mongo_connection.connect()
-                    database_name = settings.MONGODB_SETTINGS["DATABASE_NAME"]
-
-                    # Extract the collection name from the query string
-                    collection_match = re.search(r"db\.(\w+)\.aggregate\(", query)
-                    if not collection_match:
-                        return Response(
-                            {"error": "Collection name could not be determined from the query."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    collection_name = collection_match.group(1)
-
-                    # Get the MongoDB collection
-                    db_connection = mongo_connection.db[collection_name]
-
-                    # Execute MongoDB query
-                    executor = MongoQueryExecutor(db_connection)
-                    execution_result = executor.execute_query(query)
-                    logger.debug(f"Query executed successfully: {execution_result}")
-
-                    return Response(
-                        data={"execution_result": execution_result["data"]},  # Return query result
-                        status=status.HTTP_200_OK
-                    )
-                
-                
-                '''
-
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return Response(
+                {"error": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+class ChatHistoryView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, user_name):
+        try:
+            limit = max(1, min(int(request.query_params.get('limit', 10)), 100))  # Limit between 1-100
+            offset = max(0, int(request.query_params.get('offset', 0)))  # Ensure offset is non-negative
+
+            logger.debug(f"Fetching chat history for user: {user_name}, limit: {limit}, offset: {offset}")
+
+            # Get total chat count
+            count_query = "SELECT COUNT(*) FROM chat_history WHERE user_name = %s"
+            with connections['default'].cursor() as cursor:
+                cursor.execute(count_query, [user_name])
+                total_count = cursor.fetchone()[0]  # Total chat count
+
+            # Fetch paginated chat history
+            query = """
+                SELECT chat_id, user_query, generated_query, database_type, created_at
+                FROM chat_history
+                WHERE user_name = %s
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            with connections['default'].cursor() as cursor:
+                cursor.execute(query, (user_name, limit, offset))
+                chat_history = cursor.fetchall()
+
+            formatted_history = [
+                {
+                    "chat_id": chat[0],
+                    "user_query": chat[1],
+                    "generated_query": chat[2],
+                    "database_type": chat[3],
+                    "created_at": chat[4].isoformat()
+                }
+                for chat in chat_history
+            ]
+
+            return Response(
+                data={"chat_history": formatted_history, "total_count": total_count},
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            logger.error(f"An error occurred while fetching chat history: {str(e)}", exc_info=True)
             return Response(
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
