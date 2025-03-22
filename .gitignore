@@ -1,0 +1,30 @@
+# Ignore a specific directory
+__pycache__/
+node_modules/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+.env.local
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Build and distribution directories
+build/
+dist/
+*.egg-info/
