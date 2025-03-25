@@ -6,15 +6,15 @@ import logging
 import re
 
 class PostgresQueryGenerator(QueryGenerator):
-    def __init__(self, connection):
+    def __init__(self, connection): 
         super().__init__(connection)
         
 
     def get_prompts(self, connection): 
-        if not hasattr(connection, 'cursor'):
+        if not hasattr(connection, 'cursor'): 
             raise TypeError(f"Expected database connection, but got {type(connection)}")
 
-        try:
+        try: 
             with connection.cursor() as cursor:  
                 cursor.execute("SELECT prompt FROM public.prompts WHERE db_select = %s", ['postgres'])  
                 row = cursor.fetchone()

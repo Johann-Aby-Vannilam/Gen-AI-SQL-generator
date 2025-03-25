@@ -3,9 +3,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import CustomUser
 from .serializers import CustomTokenObtainPairSerializer
 from .permissions import HasRole
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 # Register View
 class RegisterView(APIView):
@@ -25,7 +29,7 @@ class RegisterView(APIView):
 
 # Login View
 class LoginView(APIView):
-    def post(self, request):
+    def post(self, request): 
         username = request.data.get('username')
         password = request.data.get('password')
         user = authenticate(username=username, password=password)
@@ -46,12 +50,17 @@ class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        user = request.user
-        return Response({
-            'username': user.username,
-            'email': user.email,
-            'role': user.role
-        }, status=status.HTTP_200_OK)
+        try:
+            user = CustomUser.objects.get(id=request.user.id)  # Ensure only one user is retrieved
+            return Response({
+                'username': user.username,
+                'email': user.email,
+                'role': user.role
+            }, status=status.HTTP_200_OK)
+        except CustomUser.MultipleObjectsReturned:
+            return Response({"error": "Multiple users found for this ID"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
     

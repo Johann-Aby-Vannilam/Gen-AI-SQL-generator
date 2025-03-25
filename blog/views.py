@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db import connections,connection
+from django.db import connections, connection
 from Query_executor.postges_exe import QueryExecutor
 from Query_generator import PostgresQueryGenerator, MongoQueryGenerator
 from Connection_db.mongo_con import MongoDBConnection
@@ -11,6 +11,13 @@ from Query_executor import MongoQueryExecutor
 from django.conf import settings
 from pymongo import MongoClient
 from rest_framework.permissions import AllowAny
+import json
+from datetime import datetime
+
+def convert_datetime(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()  
+    raise TypeError("Type not serializable") 
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +53,7 @@ class GenerateQueryView(APIView):
                 database_name = settings.MONGODB_SETTINGS["DATABASE_NAME"]
                 mongo_client = MongoClient(mongo_host)
                 generator = MongoQueryGenerator(mongo_client, database_name)
-                logger.debug(f"User input received: {user_input}")  # ✅ Debugging log
+                logger.debug(f"User input received: {user_input}")  
                 no_sql_query = generator.generate_query(user_input)
                 logger.debug(f"Generated NoSQL query: {no_sql_query}")
                 self.save_chat_history(user_name, user_input, no_sql_query, db_selected)
@@ -76,9 +83,8 @@ class ExecuteQueryView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        """Execute a SQL query and return the result."""
         try:
-            logger.debug(f"Received request data: {request.data}")
+            logger.debug(f"Received request data: {request.data}") 
             generated_query = request.data.get('generated_query')
             db_selected = request.data.get('db_selected', 'sql').lower()
             if not generated_query or (isinstance(generated_query, dict) and 'query' not in generated_query):
@@ -87,7 +93,6 @@ class ExecuteQueryView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # 🔹 Ensure generated_query is a string (adjust this based on actual format)
             if isinstance(generated_query, dict):
                 query = generated_query.get('query')
             else:
@@ -101,9 +106,8 @@ class ExecuteQueryView(APIView):
 
             if db_selected == "sql":
                 logger.debug("Executing SQL query.")
-                # Ensure database connection is open
                 connection = connections['default']
-                connection.ensure_connection()  #Reconnect if needed
+                connection.ensure_connection()  
 
                 if not connection.connection:
                     return Response(
@@ -111,30 +115,26 @@ class ExecuteQueryView(APIView):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
-                # Execute query
                 executor = QueryExecutor(connection)
                 execution_result = executor.execute_query(query)  
-                logger.debug(f"Query executed successfully: {execution_result}")
+                execution_result_serialized = json.loads(json.dumps(execution_result, default=str))
 
                 return Response(
-                    data={"execution_result": execution_result},
+                    data={"execution_result": execution_result_serialized},
                     status=status.HTTP_200_OK
                 )
 
             else:
                 logger.debug("Executing NoSQL (MongoDB) query.")
 
-                # Connect to MongoDB
                 mongo_connection = MongoDBConnection()
                 mongo_connection.connect()
                 database_name = settings.MONGODB_SETTINGS["DATABASE_NAME"]
 
-                # Execute MongoDB query
                 executor = MongoQueryExecutor(mongo_connection.db)
                 execution_result = executor.execute_query(query)
                 logger.debug(f"Query executed successfully: {execution_result}")
 
-                # Check if the query execution was successful
                 if "error" in execution_result:
                     return Response(
                         {"error": execution_result["error"]},
@@ -142,7 +142,7 @@ class ExecuteQueryView(APIView):
                     )
                 elif "data" in execution_result:
                     return Response(
-                        data={"execution_result": execution_result["data"]},  # Return query result
+                        data={"execution_result": execution_result["data"]},  
                         status=status.HTTP_200_OK
                     )
         except Exception as e:
@@ -157,18 +157,16 @@ class ChatHistoryView(APIView):
 
     def get(self, request, user_name):
         try:
-            limit = max(1, min(int(request.query_params.get('limit', 10)), 100))  # Limit between 1-100
-            offset = max(0, int(request.query_params.get('offset', 0)))  # Ensure offset is non-negative
+            limit = max(1, min(int(request.query_params.get('limit', 10)), 100)) 
+            offset = max(0, int(request.query_params.get('offset', 0))) 
 
             logger.debug(f"Fetching chat history for user: {user_name}, limit: {limit}, offset: {offset}")
 
-            # Get total chat count
             count_query = "SELECT COUNT(*) FROM chat_history WHERE user_name = %s"
             with connections['default'].cursor() as cursor:
                 cursor.execute(count_query, [user_name])
-                total_count = cursor.fetchone()[0]  # Total chat count
+                total_count = cursor.fetchone()[0]  
 
-            # Fetch paginated chat history
             query = """
                 SELECT chat_id, user_query, generated_query, database_type, created_at
                 FROM chat_history
