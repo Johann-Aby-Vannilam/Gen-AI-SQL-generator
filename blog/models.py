@@ -24,10 +24,23 @@ class GeneratorConfiguration(models.Model):
         default=DatabaseTypes.POSTGRESQL,
         help_text="Select the type of database."
     )
-    # Add additional fields as required
+
 
     class Meta:
         db_table = 'generator_configurations'
     
     def __str__(self):
         return f"{self.name} ({self.get_database_type_display()})"
+
+class ChatSession(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, to_field='id')
+    name = models.CharField(max_length=200)
+    database_type = models.CharField(max_length=10, default='sql')
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+class ChatMessage(models.Model):
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    text = models.TextField()
+    sender = models.CharField(max_length=20)  # 'user' or 'system'
+    timestamp = models.DateTimeField(auto_now_add=True)

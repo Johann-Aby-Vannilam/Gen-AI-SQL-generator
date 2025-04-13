@@ -7,13 +7,12 @@ from .models import CustomUser
 from .serializers import CustomTokenObtainPairSerializer
 from .permissions import HasRole
 
-# Register View
 class RegisterView(APIView):
     def post(self, request):
         username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
-        role = request.data.get('role', 'user')  # Default role is 'user'
+        role = request.data.get('role', 'user')  
 
         if CustomUser.objects.filter(username=username).exists():
             return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -23,7 +22,6 @@ class RegisterView(APIView):
         user = CustomUser.objects.create_user(username=username, email=email, password=password, role=role)
         return Response({'message': 'User registered successfully!'}, status=status.HTTP_201_CREATED)
 
-# Login View
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -36,12 +34,11 @@ class LoginView(APIView):
                 'message': 'Login successful!',
                 'access_token': str(refresh.access_token),
                 'refresh_token': str(refresh),
-                'role': user.role  # Include role in the response
+                'role': user.role  
             }, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-# Profile View
 class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
