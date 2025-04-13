@@ -86,15 +86,4 @@ class MongoQueryGenerator(QueryGenerator):
                 try:
                     query = generator.generate_query(user_input)
                 except Exception as e:
-                    query = f"Error: {str(e)}"
-            
-        
-        return render(request, "blog/sql1.html", {
-            "user_input": user_input,
-            "query": query,
-            "results": results,
-            "response": True
-        })
-
-
-        
+                    query = f"Error: {str(e)}"        
