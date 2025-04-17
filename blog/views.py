@@ -180,7 +180,7 @@ class ChatSessionView(APIView):
             return Response({'error': str(e)}, status=500)
 
 class ChatDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         """Get single chat with all messages"""
@@ -239,17 +239,40 @@ class ChatDetailView(APIView):
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return Response({'error': str(e)}, status=500)
 
+    # def delete(self, request, pk):
+    #     """Delete chat session"""
+    #     try:
+    #         chat = ChatSession.objects.get(id=pk, user=request.user)
+    #         chat.delete()
+    #         return Response(status=204)
+    #     except ChatSession.DoesNotExist:
+    #         return Response({'error': 'Chat not found'}, status=404)
+    #     except Exception as e:
+    #         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+    #         return Response({'error': str(e)}, status=500)
+
     def delete(self, request, pk):
         """Delete chat session"""
         try:
-            chat = ChatSession.objects.get(id=pk, user=request.user)
-            chat.delete()
-            return Response(status=204)
+            with transaction.atomic():
+                chat = ChatSession.objects.get(id=pk, user=request.user)
+                chat.delete()
+                return Response(
+                    {'success': 'Chat deleted successfully'},  # Add success message
+                    status=status.HTTP_204_NO_CONTENT
+                )
+                
         except ChatSession.DoesNotExist:
-            return Response({'error': 'Chat not found'}, status=404)
+            return Response(
+                {'error': 'Chat not found or already deleted'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-            return Response({'error': str(e)}, status=500)
+            logger.error(f"Delete error: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'Failed to delete chat - please try again'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class CurrentChatView(APIView):
     permission_classes = [IsAuthenticated]
